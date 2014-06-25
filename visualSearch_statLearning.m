@@ -1,12 +1,11 @@
-classdef wedgewood_session
+classdef visualSearch_statLearning
     % Author:   Jason Arita
-    % Version:  J --BLOCKED 1 set size 12 (6 colored objects on each side)
+    % Version:  1
     %
     
     properties
-        
+        name                            = visualSearch_statLearning;
         block;                          % where all trial data is stored
-        name;
         date;                           % current date (see help DATESTR)
         start_time;                     % current time
         end_time;
@@ -14,7 +13,6 @@ classdef wedgewood_session
         is_practice;                    % from prompt
         subject_ID;                     % from prompt
         run_num;                        % from prompt
-        cue_condition_num;              % from prompt
         save_filename;                  % from prompt
         condInfo;                       % from prompt
         cue_type_list;                  % from prompt
@@ -28,13 +26,12 @@ classdef wedgewood_session
         % Stimulus settings
         %------------------------
         numStim                     = 8;                            % num of landolt-c to display
-        set_size_list               = { 12 };                       % num of colored objects
+        set_size_list               = { 8 };                       % num of colored objects
         bgColorWd                   = 'white';                      % (str)
         search_annulus_radius       = 200;                          % (px) dist. from center for landalt-c's
-        trialMultiplier             = 4;                            % num times to repeat each trial permutation (~5 mins per set of unique trials)
-        target_color_list           = { 'red'       , 'green'   , 'blue'    , 'magenta' , 'orange'  , 'cyan'   , 'gray'    };
-        target_hemifield_list       = { 'top'       , 'bottom'  , 'left'    , 'right'};
-        target_presence_list        = { 'present'   };
+        trialMultiplier             = 1;                            % num times to repeat each trial permutation (~5 mins per set of unique trials)
+        target_quadrant_list        = { 'top-left'  , 'top-right'  , 'btm-left'    , 'btm-right'};
+        target_presence_list        = { 'present'   , 'absent'  };
         target_orientation_list     = { 'up'        , 'down'    };
         distractor_orientation_list = { 'left'      , 'right'   };
         
@@ -45,10 +42,9 @@ classdef wedgewood_session
         % ~ 12 seconds max per trial
         ITI                         = { 1.000 1.400 };              % (sec) min dur for inter trial interval (ITI)
         pre_trial_duration          = 0.500;                        % (sec) dur to present fixation before search frame
-        cue_frame_duration          = 0.100;                        % (sec) dur the cue stays on
         SOA_list                    = { 1.000 };                    % (sec) 1 SOA duration(s)
         responseDur                 = 5.000;                        % (sec) dur to wait for resp
-        post_response_duration      = 0.500;                        % (sec) dur to wait after subj resp
+        post_response_duration      = 0.250;                        % (sec) dur to wait after subj resp
         
 
         %------------------------
@@ -57,7 +53,8 @@ classdef wedgewood_session
         fontName                    = 'Helvetica';                  % font name for all instructions
         fontSize                    = 24;                           % font size for all instructions
         fontColorWd                 = 'black';                      % fonct color for all instructions
-        
+        fontWrap                    = 45;
+
         
         % Timing %
         exptDuration;
@@ -78,9 +75,8 @@ classdef wedgewood_session
     
     methods
         
-        function obj    = wedgewood_session(varargin)
+        function obj    = visualSearch_statLearning(varargin)
             
-            obj.name                    = 'wedgewood_vJ';
             obj.date                    = datestr(now, 'mm/dd/yyyy');  % current date (see help DATESTR)
             obj.start_time              = datestr(now, 'HH:MM:SS AM'); % current time
 
@@ -97,29 +93,28 @@ classdef wedgewood_session
                     prompt                      =   ...
                         { 'Enter subject number: '  ...
                         , 'Enter Run Number: '      ...
-                        , 'Cue Condition Number:'   ...
                         , 'Practice?'               ...
                         };
                     promptNumAnsLines           = 1;
                     promptDefaultAns            =   ...
                         { 'J99'                     ...
                         , '99'                      ...
-                        , '1'                       ...
                         , 'yes'                     ...
                         };
                     
                     
                     options.Resize              = 'on';
                     answer                      = inputdlg(prompt, promptTitle, promptNumAnsLines, promptDefaultAns, options);
-                    obj.subject_ID              = answer{1};
-                    obj.run_num                 = answer{2};
-                    obj.cue_condition_num       = str2double(answer{3});
-                    obj.is_practice             = answer{4};
-                    
+                    if(isempty(answer))
+                        return;
+                    else
+                        obj.subject_ID              = answer{1};
+                        obj.run_num                 = answer{2};
+                        obj.is_practice             = answer{4};
+                    end
                 case 4
                     obj.subject_ID              = varargin{1};
                     obj.run_num                 = varargin{2};
-                    obj.cue_condition_num       = varargin{3};
                     obj.is_practice             = varargin{4};
                
                 otherwise
@@ -128,9 +123,6 @@ classdef wedgewood_session
             
             
             obj.condInfo                = conditionInfo();
-            obj.cue_type_list           = { obj.condInfo.cue_type(obj.cue_condition_num) };
-            obj.cue_instructions        = obj.condInfo.instruction(obj.cue_condition_num);
-            obj.accResp                 = obj.condInfo.button_nums(obj.cue_condition_num);
             obj.accRespNames            = obj.condInfo.button_names();
             
             % Practice Setup
@@ -158,8 +150,6 @@ classdef wedgewood_session
                 , obj.SOA_list                      ...
                 , obj.set_size_list                 ...
                 , obj.target_presence_list          ...
-                , obj.target_hemifield_list         ...
-                , obj.target_color_list             ...
                 , obj.target_orientation_list       ...
                 , obj.distractor_orientation_list   ...
                 , obj.ITI                           ...
@@ -196,12 +186,11 @@ classdef wedgewood_session
                 HideCursor;
                 progEnv.gamepadIndex   = Gamepad('GetGamepadIndicesFromNames', 'Logitech(R) Precision(TM) Gamepad');
                 daqCard                = daqObj();                                                     % setup event codes
-                [ winPtr winRect screenCenter_pt ]   = setupScreen(color2RGB_2(obj.bgColorWd));   %#ok<ASGLU> % setup screen
+                [ winPtr, ~, screenCenter_pt ]   = setupScreen(color2RGB_2(obj.bgColorWd));      % setup screen
                 background             = stimBackground(obj.bgColorWd);                                % setup background stim
                 fixation               = stimFixationPt(screenCenter_pt);                              % setup fixation stim
                 Screen('TextFont', winPtr, obj.fontName);                                       % setup text font
                 Screen('TextSize', winPtr, obj.fontSize);                                       % setup text size
-                font_wrap = 45;
                 
                 if(obj.is_practice)
                     numTrials       = 15;                                                       % use subset of all generated trials for practice
@@ -218,10 +207,10 @@ classdef wedgewood_session
                 startTime    = GetSecs;                                                         % start timing experiment session
                 
                 % --------------------------
-                % Present cue instructions
+                % Present instructions
                 % --------------------------
                 background.draw(winPtr);
-                DrawFormattedText(winPtr, obj.cue_instructions, 'center', 'center',color2RGB_2(obj.fontColorWd),font_wrap,0,0,2);
+                DrawFormattedText(winPtr, obj.cue_instructions, 'center', 'center',color2RGB_2(obj.fontColorWd),obj.fontWrap,0,0,2);
                 Screen('Flip', winPtr);                                                         % flip/draw buffer to display monitor
                 waitForButtonRelease(progEnv.gamepadIndex);
                 waitForSubjPress(progEnv.gamepadIndex);
@@ -238,7 +227,7 @@ classdef wedgewood_session
                         , obj.accRespNames{respNum}   ...
                         );
                     
-                    DrawFormattedText(winPtr,buttonInstruction_txt,'center','center',color2RGB_2(obj.fontColorWd),font_wrap+10,false,false,2);
+                    DrawFormattedText(winPtr,buttonInstruction_txt,'center','center',color2RGB_2(obj.fontColorWd),obj.fontWrap+10,false,false,2);
                     Screen('Flip', winPtr);            % flip/draw buffer to display monitor
                     
                     % wait for button confirmation
@@ -257,16 +246,12 @@ classdef wedgewood_session
                     % -------------------------
                     % Execute Single Trial
                     % -------------------------
-                    obj.block.trials(currTrialNum).trial_order_num = currTrialNum;  % save trial order number to data object
-                    stim_search             = obj.block.trials(currTrialNum).search_stim;
-                    stim_cue                = obj.block.trials(currTrialNum).cue_stim;
-                    SOA                     = obj.block.trials(currTrialNum).SOA;
+                    obj.block.trials(currTrialNum).trial_order_num  = currTrialNum;  % save trial order number to data object
+                    stim_search                                     = obj.block.trials(currTrialNum).search_stim;
+                    %                     if(daqCard.isPresent); daqCard.resetPorts(); end
                     
-                    %                     target_eventCode        = obj.block.trials(currTrialNum).event_code;
-                    if(daqCard.isPresent); daqCard.resetPorts(); end
-                    
-                    ITI_processing_time = (GetSecs-ITI_start_time);
-                    leftover_ITI_dur = ITI_dur -ITI_processing_time;
+                    ITI_processing_time     = (GetSecs-ITI_start_time);
+                    leftover_ITI_dur        = ITI_dur -ITI_processing_time;
                     WaitSecs(leftover_ITI_dur);
                     fprintf('Nominal ITI Duration:\t%-8.4f\tms\n'       , ITI_dur               *1000);
                     fprintf('Actual  ITI Duration:\t%-8.4f\tms\n'       , (GetSecs-ITI_start_time)*1000);
@@ -284,27 +269,7 @@ classdef wedgewood_session
                     WaitSecs(obj.pre_trial_duration);                                       % wait:
                     %                     fprintf('Pre-trial fixation dur: %1.4f\t\t ms\n' , (GetSecs-start)/1000);
                     
-                    % ----------------------------------
-                    % Present: Cue frame
-                    % ----------------------------------
-                    %                     start = GetSecs;
-                    background.draw(winPtr);
-                    stim_cue.draw(winPtr, screenCenter_pt);
-                    Screen('Flip', winPtr);                                                 % flip/draw buffer to display monitor
-                    start = GetSecs;
-                    WaitSecs(obj.cue_frame_duration);                                       % wait:
-                    %                     fprintf('Cue frame dur: %1.4f\t\t ms\n' , (GetSecs-start)*1000);
-                    
-                    % ----------------------------------
-                    % Present: Cue to search frame
-                    % ----------------------------------
-                    %                     start = GetSecs;
-                    background.draw(winPtr);
-                    fixation.draw(winPtr);
-                    Screen('Flip', winPtr);                                                 % flip/draw buffer to display monitor
-                    WaitSecs(SOA-obj.cue_frame_duration);                                   % wait:
-                    cue_to_search_SOA = GetSecs-start;
-                    
+                   
                     % ----------------------------------
                     % Present: Search frame
                     % ----------------------------------
@@ -365,7 +330,7 @@ classdef wedgewood_session
                         background.draw(winPtr);
                         
                         break_text = sprintf('Take a break\n\nAccuracy:\t %-1.2f \t%%\nResponse Time:\t %-1.2f\tmsecs\n\nPress button 10 button to continue', curr_mean_accuracy , curr_mean_RT);
-                        DrawFormattedText(winPtr, break_text, 'center', 'center',color2RGB_2(obj.fontColorWd),font_wrap,0,0,2);
+                        DrawFormattedText(winPtr, break_text, 'center', 'center',color2RGB_2(obj.fontColorWd),obj.fontWrap,0,0,2);
                         Screen('Flip', winPtr);            			% flip/draw buffer to display monitor
                         waitForButtonRelease(progEnv.gamepadIndex);
                         waitForSubjPress(progEnv.gamepadIndex);     % wait for button press (subj rest period)
@@ -374,7 +339,7 @@ classdef wedgewood_session
                         % Present cue instructions
                         % --------------------------
                         background.draw(winPtr);
-                        DrawFormattedText(winPtr, obj.cue_instructions, 'center', 'center',color2RGB_2(obj.fontColorWd),font_wrap,0,0,2);
+                        DrawFormattedText(winPtr, obj.cue_instructions, 'center', 'center',color2RGB_2(obj.fontColorWd),obj.fontWrap,0,0,2);
                         Screen('Flip', winPtr);                                                         % flip/draw buffer to display monitor
                         waitForButtonRelease(progEnv.gamepadIndex);
                         waitForSubjPress(progEnv.gamepadIndex);
@@ -409,7 +374,7 @@ classdef wedgewood_session
                 end
                 
                 background.draw(winPtr);
-                DrawFormattedText(winPtr, end_instructions, 'center', 'center',color2RGB_2(obj.fontColorWd),font_wrap);
+                DrawFormattedText(winPtr, end_instructions, 'center', 'center',color2RGB_2(obj.fontColorWd),obj.fontWrap);
                 Screen('Flip', winPtr);                                 % flip/draw buffer to display monitor
      
                 
@@ -565,16 +530,16 @@ end
 function waitForButtonRelease(gamepadIndex)
 % Keeps looping till ONLY buttons 1-10 are all released
 
-BUTTON_1 = 1;
-BUTTON_2 = 2;
-BUTTON_3 = 3;
-BUTTON_4 = 4;
-BUTTON_5 = 5;
-BUTTON_6 = 6;
-BUTTON_7 = 7;
-BUTTON_8 = 8;
-BUTTON_9 = 9;
-BUTTON_10 = 10;
+BUTTON_1    = 1;
+BUTTON_2    = 2;
+BUTTON_3    = 3;
+BUTTON_4    = 4;
+BUTTON_5    = 5;
+BUTTON_6    = 6;
+BUTTON_7    = 7;
+BUTTON_8    = 8;
+BUTTON_9    = 9;
+BUTTON_10   = 10;
 
 keyDown = true;
 while(keyDown)

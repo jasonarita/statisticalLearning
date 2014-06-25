@@ -1,4 +1,4 @@
-classdef wedgewood_trial < handle
+classdef visualSearch_statLearning_trial < handle
     %
     % Experimentor Defined Variables:
     %
@@ -9,14 +9,10 @@ classdef wedgewood_trial < handle
         subject_ID;
         trial_order_num;
         run_order_num;
-        cue_type;
         SOA;
         set_size;
-        cluster_size;
-        num_clusters        = 2;
         target_presence;
-        target_hemifield;
-        target_obj_location
+        target_obj_location;
         cue_color;
         target_color;
         distractor_color;
@@ -45,7 +41,7 @@ classdef wedgewood_trial < handle
     
     methods
         
-        function obj   = wedgewood_trial(varargin)
+        function obj   = visualSearch_statLearning_trial(varargin)
             
             switch nargin
                 case 0
@@ -72,14 +68,10 @@ classdef wedgewood_trial < handle
                     obj.subject_ID                  = varargin{1};
                     obj.run_order_num               = varargin{2};
                     obj.event_code                  = varargin{3};
-                    obj.cue_type                    = varargin{4};
                     obj.SOA                         = varargin{5};
                     obj.set_size                    = varargin{6};
                     
                     obj.target_presence             = varargin{7};
-                    obj.target_hemifield            = varargin{8};
-                    obj.cue_color                   = varargin{9};
-                    color_list                      = varargin{10};
                     target_orientation_list         = varargin{11};
                     distractor_orientation_list     = varargin{12};
                     ITI_list                        = varargin{13};
@@ -89,8 +81,6 @@ classdef wedgewood_trial < handle
                     error('Wrong number of input arguments');
             end
             
-            obj.cluster_size                = obj.set_size/obj.num_clusters;        % varies
-            obj.cue_stim                    = stimBox.empty;
             obj.search_stim                 = stimLandoltCArray.empty;
             
             
@@ -101,26 +91,24 @@ classdef wedgewood_trial < handle
             
             
             % Calculate search object LOCATIONS
-            switch(obj.target_hemifield)
-                case{'top'}
-                    target_cluster_start_loc      = 10;
-                    distractor_cluster_start_loc  = 4;
-                case{'bottom'}
-                    target_cluster_start_loc      = 4;
-                    distractor_cluster_start_loc  = 10;
-                case{'left'}
-                    target_cluster_start_loc      = 7;
-                    distractor_cluster_start_loc  = 1;
-                case{'right'}
-                    target_cluster_start_loc      = 1;
-                    distractor_cluster_start_loc  = 7;
-            end
+%             switch(obj.target_hemifield)
+%                 case{'top'}
+%                     target_cluster_start_loc      = 10;
+%                     distractor_cluster_start_loc  = 4;
+%                 case{'bottom'}
+%                     target_cluster_start_loc      = 4;
+%                     distractor_cluster_start_loc  = 10;
+%                 case{'left'}
+%                     target_cluster_start_loc      = 7;
+%                     distractor_cluster_start_loc  = 1;
+%                 case{'right'}
+%                     target_cluster_start_loc      = 1;
+%                     distractor_cluster_start_loc  = 7;
+%             end
             
             num_obj_locs_total = 12;
-            num_obj_locs_per_cluster    = num_obj_locs_total/obj.num_clusters;
             
-            target_cluster_start_locs       = mod(target_cluster_start_loc:target_cluster_start_loc+(num_obj_locs_per_cluster-obj.cluster_size), num_obj_locs_total);
-            target_start_loc                = RandSample(target_cluster_start_locs);
+             target_start_loc                = RandSample(target_cluster_start_locs);
             target_obj_locs                 = mod(target_start_loc:target_start_loc+obj.cluster_size-1, num_obj_locs_total);
             
             distractor_cluster_start_locs   = mod(distractor_cluster_start_loc:distractor_cluster_start_loc+(num_obj_locs_per_cluster-obj.cluster_size), num_obj_locs_total);
@@ -129,31 +117,6 @@ classdef wedgewood_trial < handle
             
             location = [target_obj_locs, distractor_obj_locs];
 
-            
-            
-            % Calculate search object COLORS
-            non_cue_colors = setdiff(color_list, obj.cue_color);
-            
-            switch(obj.cue_type)
-                case {'positive'}
-                    obj.target_color     = obj.cue_color;
-                    obj.distractor_color = cell2mat(RandSample(non_cue_colors));
-                case {'neutral'}
-                    obj.target_color     = cell2mat(RandSample(non_cue_colors));
-                    obj.distractor_color = cell2mat(RandSample(setdiff(non_cue_colors,obj.target_color)));
-                case {'negative'}
-                    obj.target_color     = cell2mat(RandSample(non_cue_colors));
-                    obj.distractor_color = obj.cue_color;
-            end
-            
-            color = cell(1,obj.set_size);
-            for obj_index = 1:obj.set_size
-                color{obj_index}    = obj.target_color;
-            end
-            
-            for obj_index = obj.cluster_size+1:obj.set_size
-                color{obj_index} = obj.distractor_color;
-            end        
             
             
             % Calculate search object ORIENTATIONS
@@ -187,7 +150,7 @@ classdef wedgewood_trial < handle
             obj.cue_stim    = stimBox(30,30,0,obj.cue_color, pt(0,0), obj.cue_color);
             obj.search_stim = stimLandoltCArray(num_obj_locs_total, obj.search_annulus_radius, search_landoltCs, -7*pi/num_obj_locs_total);
             
-            wedgewood_trial_manager.addTrial(obj);
+            visualSearch_statLearning_trial_manager.addTrial(obj);
             
         end % constructor method
         
