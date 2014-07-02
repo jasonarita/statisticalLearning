@@ -9,15 +9,13 @@ classdef stimLandoltC
 
 
     properties
-        location_pt;
-        orientation_wd;
-
-        gapSize_px;
-        size_px;
-        frameWidth_px;
-        frameColor_wd;
+        location_pt         = [100 100];
+        orientation_wd      = 'down';
+        gapSize_px          = 10;
+        size_px             = 30;
+        frameWidth_px       = 6;
+        frameColor_wd       = 'red';
         
-
         xyMatrix;
 
     end % properties
@@ -35,47 +33,41 @@ classdef stimLandoltC
             % constructor function for STIMLANDOLTC
 
             % DEFAULTS
-            location_pt         = pt(0,0);
-            orientation_wd      = 'right';
-            gapSize_px          = 5;
-            size_px             = 30;
-            frameWidth_px       = 6;
-            frameColor_wd       = 'black';
-            
+
             switch nargin
                 
                 case 0 
                     % use defaults
                 case 2
                     
-                    location_pt         = varargin{1};
-                    orientation_wd      = varargin{2};
+                    obj.location_pt         = varargin{1};
+                    obj.orientation_wd      = varargin{2};
 
                 case 3
                     
-                    location_pt         = varargin{1};
-                    orientation_wd      = varargin{2};
-                    frameColor_wd       = varargin{3};
+                    obj.location_pt         = varargin{1};
+                    obj.orientation_wd      = varargin{2};
+                    obj.frameColor_wd       = varargin{3};
                     
                 case 4
                     
-                    location_pt         = varargin{1};
-                    orientation_wd      = varargin{2};
-                    frameColor_wd       = varargin{3};
+                    obj.location_pt         = varargin{1};
+                    obj.orientation_wd      = varargin{2};
+                    obj.frameColor_wd       = varargin{3};
                     
                     % Cortical Scaling
                     sizeScale           = varargin{4};
-                    size_px             = size_px       * sizeScale;
-                    gapSize_px          = gapSize_px    * sizeScale;
-                    frameWidth_px       = frameWidth_px * sizeScale;
+                    obj.size_px             = obj.size_px       * sizeScale;
+                    obj.gapSize_px          = obj.gapSize_px    * sizeScale;
+                    obj.frameWidth_px       = obj.frameWidth_px * sizeScale;
                 otherwise
                     error('Wrong number of input arguments');
             end
             
-            sizeC       = size_px;
-            sizeD       = size_px - frameWidth_px;
-            gapsizeC    = gapSize_px;
-            gapLocation = orientation_wd;
+            sizeC       = obj.size_px;
+            sizeD       = obj.size_px - obj.frameWidth_px;
+            gapsizeC    = obj.gapSize_px;
+            gapLocation = obj.orientation_wd;
                         
             
             %Make the Landolt-C shape         
@@ -83,16 +75,16 @@ classdef stimLandoltC
             
             switch gapLocation %boxes are always made top line(s), right line(s), bottom line(s), then left line(s)
                 case 'up'
-                    xyMatrix=[-.5*sizeC, -.5*gapsizeC,  .5*gapsizeC,  .5*sizeC,     .5*sizeD, .5*sizeD,    -.5*sizeC, .5*sizeC,    -.5*sizeD, -.5*sizeD;... % x line-pts
+                    obj.xyMatrix=[-.5*sizeC, -.5*gapsizeC,  .5*gapsizeC,  .5*sizeC,     .5*sizeD, .5*sizeD,    -.5*sizeC, .5*sizeC,    -.5*sizeD, -.5*sizeD;... % x line-pts
                               -.5*sizeD, -.5*sizeD,    -.5*sizeD,    -.5*sizeD,    -.5*sizeC, .5*sizeC,     .5*sizeD, .5*sizeD,    -.5*sizeC,  .5*sizeC];  % y line-pts
                 case 'right'
-                    xyMatrix=[-.5*sizeC,  .5*sizeC,    .5*sizeD, .5*sizeD,   .5*sizeD,   .5*sizeD,    -.5*sizeC, .5*sizeC,     -.5*sizeD, -.5*sizeD;...
+                    obj.xyMatrix=[-.5*sizeC,  .5*sizeC,    .5*sizeD, .5*sizeD,   .5*sizeD,   .5*sizeD,    -.5*sizeC, .5*sizeC,     -.5*sizeD, -.5*sizeD;...
                               -.5*sizeD, -.5*sizeD,   -.5*sizeC,-.5*gapsizeC,.5*gapsizeC,.5*sizeC,     .5*sizeD, .5*sizeD,     -.5*sizeC,  .5*sizeC];
                 case 'down'
-                    xyMatrix=[-.5*sizeC,  .5*sizeC,    .5*sizeD, .5*sizeD,   -.5*sizeC, -.5*gapsizeC,.5*gapsizeC, .5*sizeC,     -.5*sizeD, -.5*sizeD;...
+                    obj.xyMatrix=[-.5*sizeC,  .5*sizeC,    .5*sizeD, .5*sizeD,   -.5*sizeC, -.5*gapsizeC,.5*gapsizeC, .5*sizeC,     -.5*sizeD, -.5*sizeD;...
                               -.5*sizeD, -.5*sizeD,   -.5*sizeC, .5*sizeC,    .5*sizeD,  .5*sizeD,   .5*sizeD,    .5*sizeD,     -.5*sizeC,  .5*sizeC];
                 case 'left'
-                    xyMatrix=[-.5*sizeC, .5*sizeC,     .5*sizeD,.5*sizeD,    -.5*sizeC,.5*sizeC,    -.5*sizeD,-.5*sizeD,  -.5*sizeD,  -.5*sizeD;...
+                    obj.xyMatrix=[-.5*sizeC, .5*sizeC,     .5*sizeD,.5*sizeD,    -.5*sizeC,.5*sizeC,    -.5*sizeD,-.5*sizeD,  -.5*sizeD,  -.5*sizeD;...
                               -.5*sizeD,-.5*sizeD,    -.5*sizeC,.5*sizeC,     .5*sizeD,.5*sizeD,    -.5*sizeC,-.5*gapsizeC,.5*gapsizeC,.5*sizeC];
                 otherwise
                     error('Input ErrorWrong stimulus gap location number');
@@ -101,24 +93,13 @@ classdef stimLandoltC
             %Create the position correction positions for the stimuli, based on the position matrix input
             X=1;    % array index for x-coordinate
             Y=2;    % array index for y-coordinate
-            numLinePts      = size(xyMatrix,2);
-            positionMatrix  = [ repmat(location_pt(X), [1 numLinePts]) ;  % x line-points
-                                repmat(location_pt(Y), [1 numLinePts])];  % y line-points
+            numLinePts      = size(obj.xyMatrix,2);
+            positionMatrix  = [ repmat(obj.location_pt(X), [1 numLinePts]) ;  % x line-points
+                                repmat(obj.location_pt(Y), [1 numLinePts])];  % y line-points
                             
 
-                            
-            % Set Obj Properties
-                            
-            obj.location_pt     = location_pt;
-            obj.orientation_wd  = orientation_wd;
-            obj.gapSize_px      = gapSize_px;
-            obj.size_px         = size_px;
-            obj.frameWidth_px   = frameWidth_px;
-            obj.frameColor_wd   = frameColor_wd;
-            
-            
-            
-            obj.xyMatrix        = round(xyMatrix+positionMatrix);                                % set landolt-c matrix in final position            
+                                     
+            obj.xyMatrix        = round(obj.xyMatrix+positionMatrix);                                % set landolt-c matrix in final position            
 
 
         end % constructor method
@@ -133,13 +114,13 @@ classdef stimLandoltC
         
         function value  = get.frameColor_rgb(obj)
             
-            value = color2RGB_2(obj.frameColor_wd);
+            value = seColor2RGB(obj.frameColor_wd);
             
         end % get method
             
         function draw(obj, winPtr, location_pt)           
             
-            Screen('DrawLines', winPtr, obj.xyMatrix, obj.frameWidth_px, color2RGB_2(obj.frameColor_wd), location_pt.array);
+            Screen('DrawLines', winPtr, obj.xyMatrix, obj.frameWidth_px, seColor2RGB(obj.frameColor_wd), location_pt);
 
         end % draw method
         
@@ -148,7 +129,7 @@ classdef stimLandoltC
             try
 
                 bgColor = 'white';
-                [winPtr winRect centerPt] = setupScreen(color2RGB_2(bgColor));
+                [winPtr, ~, centerPt] = seSetupScreen(seColor2RGB(bgColor));
                 Priority(MaxPriority(winPtr));
 
                 % ---- INSERT DRAW COMMANDS ---- %

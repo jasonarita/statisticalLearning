@@ -4,34 +4,31 @@ classdef visualSearch_statLearning
     %
     
     properties
-        name                            = visualSearch_statLearning;
+        name                            = 'visualSearch_statLearning';
         block;                          % where all trial data is stored
         date;                           % current date (see help DATESTR)
         start_time;                     % current time
         end_time;
         
-        is_practice;                    % from prompt
-        subject_ID;                     % from prompt
+        isPractice;                     % from prompt
+        subjectID;                      % from prompt
         run_num;                        % from prompt
         save_filename;                  % from prompt
         condInfo;                       % from prompt
-        cue_type_list;                  % from prompt
-        cue_instructions;               % from prompt
         
-        
-        save_directory              = 'data.raw';                 
+        save_directory                  = 'data.raw';                 
 
         
         %------------------------
         % Stimulus settings
         %------------------------
-        numStim                     = 8;                            % num of landolt-c to display
         set_size_list               = { 8 };                       % num of colored objects
         bgColorWd                   = 'white';                      % (str)
         search_annulus_radius       = 200;                          % (px) dist. from center for landalt-c's
         trialMultiplier             = 1;                            % num times to repeat each trial permutation (~5 mins per set of unique trials)
-        target_quadrant_list        = { 'top-left'  , 'top-right'  , 'btm-left'    , 'btm-right'};
-        target_presence_list        = { 'present'   , 'absent'  };
+        target_quadrant_list        = { 'top_left'  , 'top_right'  , 'btm_left'    , 'btm_right'};
+        target_quadrant_distribution= { 7           , 1            , 1             , 1          };
+        target_presence_list        = { 'present'   };
         target_orientation_list     = { 'up'        , 'down'    };
         distractor_orientation_list = { 'left'      , 'right'   };
         
@@ -40,10 +37,9 @@ classdef visualSearch_statLearning
         % Time Settings
         %------------------------
         % ~ 12 seconds max per trial
-        ITI                         = { 1.000 1.400 };              % (sec) min dur for inter trial interval (ITI)
-        pre_trial_duration          = 0.500;                        % (sec) dur to present fixation before search frame
-        SOA_list                    = { 1.000 };                    % (sec) 1 SOA duration(s)
-        responseDur                 = 5.000;                        % (sec) dur to wait for resp
+        ITI_range                   = [ 1.000 1.400 ];              % (sec) min dur for inter trial interval (ITI)
+        pre_trial_duration          = 0.250;                        % (sec) dur to present fixation before search frame
+        responseDur                 = 1.000;                        % (sec) dur to wait for resp
         post_response_duration      = 0.250;                        % (sec) dur to wait after subj resp
         
 
@@ -60,6 +56,7 @@ classdef visualSearch_statLearning
         exptDuration;
         
         % Response %
+        subjectHandedness;
         accResp;
         accRespNames;
                
@@ -77,8 +74,8 @@ classdef visualSearch_statLearning
         
         function obj    = visualSearch_statLearning(varargin)
             
-            obj.date                    = datestr(now, 'mm/dd/yyyy');  % current date (see help DATESTR)
-            obj.start_time              = datestr(now, 'HH:MM:SS AM'); % current time
+            obj.date        = datestr(now, 'mm/dd/yyyy');  % current date (see help DATESTR)
+            obj.start_time  = datestr(now, 'HH:MM:SS AM'); % current time
 
             
             % INPUT HANDLING:
@@ -90,16 +87,18 @@ classdef visualSearch_statLearning
                     % -------------------------- %
                     
                     promptTitle                 = 'Experimental Setup Information';
-                    prompt                      =   ...
-                        { 'Enter subject number: '  ...
-                        , 'Enter Run Number: '      ...
-                        , 'Practice?'               ...
+                    prompt                      =       ...
+                        { 'Enter subject number: '      ...
+                        , 'Enter Run Number: '          ...
+                        , 'Practice?'                   ...
+                        , 'Handedness (1-Left 2-Right)' ...
                         };
                     promptNumAnsLines           = 1;
                     promptDefaultAns            =   ...
                         { 'J99'                     ...
                         , '99'                      ...
-                        , 'yes'                     ...
+                        , 'no'                      ...
+                        , '1'                       ...
                         };
                     
                     
@@ -108,29 +107,29 @@ classdef visualSearch_statLearning
                     if(isempty(answer))
                         return;
                     else
-                        obj.subject_ID              = answer{1};
-                        obj.run_num                 = answer{2};
-                        obj.is_practice             = answer{4};
+                        obj.subjectID           = answer{1};
+                        obj.run_num             = answer{2};
+                        obj.isPractice          = answer{3};
+                        obj.subjectHandedness   = answer{4};
                     end
-                case 4
-                    obj.subject_ID              = varargin{1};
+                case 3
+                    obj.subjectID               = varargin{1};
                     obj.run_num                 = varargin{2};
-                    obj.is_practice             = varargin{4};
+                    obj.isPractice              = varargin{3};
+                    obj.subjectHandedness       = varargin{4};
+
                
                 otherwise
                     error('Wrong number of input arguments');
             end
             
             
-            obj.condInfo                = conditionInfo();
-            obj.accRespNames            = obj.condInfo.button_names();
-            
             % Practice Setup
-            switch lower(obj.is_practice)
+            switch lower(obj.isPractice)
                 case 'yes'
-                    obj.is_practice          = true;
+                    obj.isPractice          = true;
                 otherwise
-                    obj.is_practice          = false;
+                    obj.isPractice          = false;
             end
             
             
@@ -142,17 +141,17 @@ classdef visualSearch_statLearning
             % Set up trials
             %------------------------
             display('Generating Trial Permutations...');
-            obj.block = wedgewood_block             ...
-                ( obj.subject_ID                    ...
+            obj.block = visualSearch_statLearning_block   ...
+                ( obj.subjectID                     ...
                 , obj.run_num                       ...
                 , obj.trialMultiplier               ...
-                , obj.cue_type_list                 ...
-                , obj.SOA_list                      ...
                 , obj.set_size_list                 ...
+                , obj.target_quadrant_list          ...
+                , obj.target_quadrant_distribution  ...
                 , obj.target_presence_list          ...
                 , obj.target_orientation_list       ...
                 , obj.distractor_orientation_list   ...
-                , obj.ITI                           ...
+                , obj.ITI_range                     ...
                 , obj.search_annulus_radius         ...
                 );
             display('Done');
@@ -160,20 +159,17 @@ classdef visualSearch_statLearning
             % -----------------------
             % Randomize Trials
             % -----------------------
-            if(obj.DEBUG)
-                % Don't randomize
-            else
-                obj.block.trials = obj.block.randomize();
-            end
+            if(~obj.DEBUG); obj.block.trials = obj.block.randomize(); end                   % Don't randomize if not debugging
+                
             
-            % Save Dir setup
-            if~(exist(obj.save_directory, 'dir')); mkdir(obj.save_directory); end            % if save dir doesn't exist create one
+            % Setup Save Directory
+            if(~exist(obj.save_directory, 'dir')); mkdir(obj.save_directory); end            % if save dir doesn't exist create one
             
             % Save header to output file
-            if(obj.is_practice)
-                obj.save_filename   = [ './' obj.save_directory '/practice_' obj.name '_' obj.subject_ID '.txt'];
+            if(obj.isPractice)
+                obj.save_filename   = [ './' obj.save_directory '/practice_' obj.name '_' obj.subjectID '.txt'];
             else
-                obj.save_filename   = [ './' obj.save_directory '/' obj.name '_' obj.subject_ID '.txt'];
+                obj.save_filename   = [ './' obj.save_directory '/' obj.name '_' obj.subjectID '.txt'];
             end
             
         end % constructor method
@@ -182,23 +178,29 @@ classdef visualSearch_statLearning
             
             try
                 
-                clc;
-                HideCursor;
-                progEnv.gamepadIndex   = Gamepad('GetGamepadIndicesFromNames', 'Logitech(R) Precision(TM) Gamepad');
-                daqCard                = daqObj();                                                     % setup event codes
-                [ winPtr, ~, screenCenter_pt ]   = setupScreen(color2RGB_2(obj.bgColorWd));      % setup screen
-                background             = stimBackground(obj.bgColorWd);                                % setup background stim
-                fixation               = stimFixationPt(screenCenter_pt);                              % setup fixation stim
+                clc; HideCursor;
+                progEnv.gamepadIndex                = Gamepad('GetGamepadIndicesFromNames', 'Logitech(R) Precision(TM) Gamepad');
+                [ winPtr, ~, screenCenter_pt ]      = seSetupScreen(seColor2RGB(obj.bgColorWd));  % setup screen
+ % Response button(s) definitions
+    if(upper(obj.subjectHandedness) == 'R')
+        responseButtons = [6 8];    % Right trigger button 6: Target present, Button 8: Target absent
+    else
+        responseButtons = [5 7];    % Left  trigger button 5: Target present, Button 7: Target absent
+    end
+    gamepadObject   = seGamepad(responseButtons);   % Create a SEGAMEPAD object to collect responses
+    
+                background                          = stimBackground(obj.bgColorWd);                                % setup background stim
+                fixation                            = stimFixationPt(screenCenter_pt);                              % setup fixation stim
                 Screen('TextFont', winPtr, obj.fontName);                                       % setup text font
                 Screen('TextSize', winPtr, obj.fontSize);                                       % setup text size
                 
-                if(obj.is_practice)
+                if(obj.isPractice)
                     numTrials       = 15;                                                       % use subset of all generated trials for practice
                 else
                     numTrials       = length(obj.block.trials);                                 % use all generated trials
                 end
                 
-                 breakTrialNum   = ceil(numTrials / 3);                                          % Take a break every 1/3 of each session
+                breakTrialNum   = ceil(numTrials / 3);                                          % Take a break every 1/3 of each session
                 
                 % --------------------
                 % Execute Experiment
@@ -209,32 +211,33 @@ classdef visualSearch_statLearning
                 % --------------------------
                 % Present instructions
                 % --------------------------
-                background.draw(winPtr);
-                DrawFormattedText(winPtr, obj.cue_instructions, 'center', 'center',color2RGB_2(obj.fontColorWd),obj.fontWrap,0,0,2);
-                Screen('Flip', winPtr);                                                         % flip/draw buffer to display monitor
-                waitForButtonRelease(progEnv.gamepadIndex);
-                waitForSubjPress(progEnv.gamepadIndex);
+                %                 background.draw(winPtr);
+                %                 DrawFormattedText(winPtr, obj.cue_instructions, 'center', 'center',seColor2RGB(obj.fontColorWd),obj.fontWrap,0,0,2);
+                %                 Screen('Flip', winPtr);                                                         % flip/draw buffer to display monitor
+                %                 waitForButtonRelease(progEnv.gamepadIndex);
+                %                 waitForSubjPress(progEnv.gamepadIndex);
                 
                 
                 % --------------------------
                 % draw button instructions
                 % --------------------------
-                for respNum = 1:length(obj.accResp)
-                    
-                    buttonInstruction_txt = sprintf('Button %d is the %s.\n\nPress the target %s to continue... '             ...
-                        , obj.accResp{respNum}        ...
-                        , obj.accRespNames{respNum}   ...
-                        , obj.accRespNames{respNum}   ...
-                        );
-                    
-                    DrawFormattedText(winPtr,buttonInstruction_txt,'center','center',color2RGB_2(obj.fontColorWd),obj.fontWrap+10,false,false,2);
-                    Screen('Flip', winPtr);            % flip/draw buffer to display monitor
-                    
-                    % wait for button confirmation
-                    waitForButtonRelease(progEnv.gamepadIndex);
-                    gamepadResponse(100,obj.accResp(respNum),{obj.accRespNames(respNum)}); % only accept correct response
-                    
-                end
+%                 for respNum = 1:length(obj.accResp)
+%                     
+%                     buttonInstruction_txt = sprintf('Button %d is the %s.\n\nPress the target %s to continue... '             ...
+%                         , obj.accResp{respNum}        ...
+%                         , obj.accRespNames{respNum}   ...
+%                         , obj.accRespNames{respNum}   ...
+%                         );
+%                     
+%                     DrawFormattedText(winPtr,buttonInstruction_txt,'center','center',seColor2RGB(obj.fontColorWd),obj.fontWrap+10,false,false,2);
+%                     Screen('Flip', winPtr);            % flip/draw buffer to display monitor
+%                     
+%                     % wait for button confirmation
+% %                     waitForButtonRelease(progEnv.gamepadIndex);
+% %                     gamepadResponse(100,obj.accResp(respNum),{obj.accRespNames(respNum)}); % only accept correct response
+%                     responseGamepad.waitForResponse(100);
+%                     
+%                 end
                 
                 WaitSecs(.500); % give the subject a little time to get ready
                 
@@ -247,7 +250,7 @@ classdef visualSearch_statLearning
                     % Execute Single Trial
                     % -------------------------
                     obj.block.trials(currTrialNum).trial_order_num  = currTrialNum;  % save trial order number to data object
-                    stim_search                                     = obj.block.trials(currTrialNum).search_stim;
+                    stim_search                                     = obj.block.trials(currTrialNum).searchStimuli;
                     %                     if(daqCard.isPresent); daqCard.resetPorts(); end
                     
                     ITI_processing_time     = (GetSecs-ITI_start_time);
@@ -286,7 +289,8 @@ classdef visualSearch_statLearning
                     % Subj Response
                     % ----------------------------------
                     %                     start = GetSecs;
-                    subject_response = gamepadResponse(obj.responseDur, obj.accResp, obj.accRespNames, daqCard);
+%                     subject_response = gamepadResponse(obj.responseDur, obj.accResp, obj.accRespNames);
+                    responseGamepad.waitForResponse(obj.responseDur);
                     WaitSecs(obj.post_response_duration);
                     %                     targetDisplayDur = GetSecs-start;
                     
@@ -302,7 +306,7 @@ classdef visualSearch_statLearning
                     % -------------------------
                     % Post-Trial Processing
                     % -------------------------
-                    obj.block.trials(currTrialNum).saveResponse(subject_response);              % save the response to the expt class structure
+%                     obj.block.trials(currTrialNum).saveResponse(subject_response);              % save the response to the expt class structure
                     obj.save_to_file(currTrialNum, false);
                     curr_mean_accuracy  = nanmean([ obj.block.trials.accuracy  ]) * 100;        % calculate current mean accuracy
                     curr_mean_RT        = nanmean([ obj.block.trials.RT ]) * 1000;              % calculate current mean response time
@@ -314,7 +318,6 @@ classdef visualSearch_statLearning
                     fprintf('Mean Accuracy:      \t%-8.4f\t%%\n'	, curr_mean_accuracy                        );
                     fprintf('Mean Response Time: \t%-8.4f\tms\n'	, curr_mean_RT                              );
                     fprintf('\n');
-                    fprintf('Cue to Search SOA:  \t%1.4f\t ms\n'          , cue_to_search_SOA                         * 1000)
                     %                     fprintf('Target Display SOA:\t %1.4f\t ms\n'          , targDisplaySOA                            * 1000);
                     %                     fprintf('Target Display Duration: %1.4f\t ms\n\n'     , targetDisplayDur                          * 1000);
                     fprintf('-------------------------------------------------\n');
@@ -323,29 +326,31 @@ classdef visualSearch_statLearning
                     % -------------------------
                     % subject break
                     % -------------------------
-                    if((mod(currTrialNum, breakTrialNum) == 0)  ... %
-                            && not(currTrialNum == numTrials)   ... % No break on last trial
-                            && ~obj.is_practice)                     % No breaks during practice
-                        
-                        background.draw(winPtr);
-                        
-                        break_text = sprintf('Take a break\n\nAccuracy:\t %-1.2f \t%%\nResponse Time:\t %-1.2f\tmsecs\n\nPress button 10 button to continue', curr_mean_accuracy , curr_mean_RT);
-                        DrawFormattedText(winPtr, break_text, 'center', 'center',color2RGB_2(obj.fontColorWd),obj.fontWrap,0,0,2);
-                        Screen('Flip', winPtr);            			% flip/draw buffer to display monitor
-                        waitForButtonRelease(progEnv.gamepadIndex);
-                        waitForSubjPress(progEnv.gamepadIndex);     % wait for button press (subj rest period)
-                        
-                        % --------------------------
-                        % Present cue instructions
-                        % --------------------------
-                        background.draw(winPtr);
-                        DrawFormattedText(winPtr, obj.cue_instructions, 'center', 'center',color2RGB_2(obj.fontColorWd),obj.fontWrap,0,0,2);
-                        Screen('Flip', winPtr);                                                         % flip/draw buffer to display monitor
-                        waitForButtonRelease(progEnv.gamepadIndex);
-                        waitForSubjPress(progEnv.gamepadIndex);
-                                             
-                        WaitSecs(.500);                                % give the subject a little time to get ready
-                    end
+%                     if((mod(currTrialNum, breakTrialNum) == 0)  ... %
+%                             && not(currTrialNum == numTrials)   ... % No break on last trial
+%                             && ~obj.isPractice)                     % No breaks during practice
+%                         
+%                         background.draw(winPtr);
+%                         
+%                         break_text = sprintf('Take a break\n\nAccuracy:\t %-1.2f \t%%\nResponse Time:\t %-1.2f\tmsecs\n\nPress button 10 button to continue', curr_mean_accuracy , curr_mean_RT);
+%                         DrawFormattedText(winPtr, break_text, 'center', 'center',seColor2RGB(obj.fontColorWd),obj.fontWrap,0,0,2);
+%                         Screen('Flip', winPtr);            			% flip/draw buffer to display monitor
+% %                         waitForButtonRelease(progEnv.gamepadIndex);
+% %                         waitForSubjPress(progEnv.gamepadIndex);     % wait for button press (subj rest period)
+%                        
+%                         
+% 
+%                         % --------------------------
+%                         % Present cue instructions
+%                         % --------------------------
+%                         %                         background.draw(winPtr);
+%                         %                         DrawFormattedText(winPtr, obj.cue_instructions, 'center', 'center',seColor2RGB(obj.fontColorWd),obj.fontWrap,0,0,2);
+%                         %                         Screen('Flip', winPtr);                                                         % flip/draw buffer to display monitor
+%                         %                         waitForButtonRelease(progEnv.gamepadIndex);
+%                         %                         waitForSubjPress(progEnv.gamepadIndex);
+%                         %
+%                         WaitSecs(.500);                                % give the subject a little time to get ready
+%                     end
                     
                 end % Trial End
                 
@@ -360,31 +365,26 @@ classdef visualSearch_statLearning
                 % Present: Expt End Screen
                 % -------------------------
                 
-                if(obj.is_practice)
+                if(obj.isPractice)
                     end_instructions = sprintf('Practice Finished.\n\nAccuracy:\t %-1.2f \t%%\nResponse Time:\t %-1.2f\tmsecs\n\nPress button 10 to continue'  ...
                         , curr_mean_accuracy    ...
                         , curr_mean_RT          ...
                         );
                 else
-                    end_instructions = sprintf('Take a break.\n\nAccuracy:\t %-1.2f \t%%\nResponse Time:\t %-1.2f\tmsecs\n\nPress button 10 to continue'  ...
+                    end_instructions = sprintf('Run finished.\n\nAccuracy:\t %-1.2f \t%%\nResponse Time:\t %-1.2f\tmsecs\n\nPress button 10 to continue'  ...
                         , curr_mean_accuracy    ...
                         , curr_mean_RT          ...
                         );
-                    soundsc(exptEndSndData, exptEndSndFreq);        % Play sound at expt run end
+%                     soundsc(exptEndSndData, exptEndSndFreq);        % Play sound at expt run end
                 end
                 
                 background.draw(winPtr);
-                DrawFormattedText(winPtr, end_instructions, 'center', 'center',color2RGB_2(obj.fontColorWd),obj.fontWrap);
+                DrawFormattedText(winPtr, end_instructions, 'center', 'center',seColor2RGB(obj.fontColorWd),obj.fontWrap);
                 Screen('Flip', winPtr);                                 % flip/draw buffer to display monitor
      
-                
-                waitForButtonRelease(progEnv.gamepadIndex);
-                waitForSubjPress(progEnv.gamepadIndex);                 % wait for button press
                     
-                    
-                if(obj.is_practice)
-                    waitForButtonRelease(progEnv.gamepadIndex);
-                    waitForSubjPress(progEnv.gamepadIndex);            % wait for button press
+                if(obj.isPractice)
+                    KbWait;
                 else
                     KbWait;
                 end
@@ -508,64 +508,64 @@ end % classdef
 %% Sub Functions %
 
 
-function waitForSubjPress(gamepadIndex)
-% Keep looping till keyPressName is pressed
-BUTTON_10 = 10;
-done = false;        % Initialize keyboard polling loop
+% function waitForSubjPress(gamepadIndex)
+% % Keep looping till keyPressName is pressed
+% BUTTON_10 = 10;
+% done = false;        % Initialize keyboard polling loop
+% 
+% waitForButtonRelease(gamepadIndex);   % Make sure to wait for key release AFTER start timing
+% %  . . . but why?
+% while not(done);   % keep polling keyboard for user response
+%     button10State = Gamepad('GetButton', gamepadIndex, BUTTON_10);
+%     
+%     if (button10State == true)
+%         done = true;
+%     end % button check
+%     
+% end % response loop
+% 
+% end
 
-waitForButtonRelease(gamepadIndex);   % Make sure to wait for key release AFTER start timing
-%  . . . but why?
-while not(done);   % keep polling keyboard for user response
-    button10State = Gamepad('GetButton', gamepadIndex, BUTTON_10);
-    
-    if (button10State == true)
-        done = true;
-    end % button check
-    
-end % response loop
 
-end
-
-
-function waitForButtonRelease(gamepadIndex)
-% Keeps looping till ONLY buttons 1-10 are all released
-
-BUTTON_1    = 1;
-BUTTON_2    = 2;
-BUTTON_3    = 3;
-BUTTON_4    = 4;
-BUTTON_5    = 5;
-BUTTON_6    = 6;
-BUTTON_7    = 7;
-BUTTON_8    = 8;
-BUTTON_9    = 9;
-BUTTON_10   = 10;
-
-keyDown = true;
-while(keyDown)
-    
-    buttonState = [ ...
-        Gamepad('GetButton', gamepadIndex, BUTTON_1) ...
-        Gamepad('GetButton', gamepadIndex, BUTTON_2) ...
-        Gamepad('GetButton', gamepadIndex, BUTTON_3) ...
-        Gamepad('GetButton', gamepadIndex, BUTTON_4) ...
-        Gamepad('GetButton', gamepadIndex, BUTTON_5) ...
-        Gamepad('GetButton', gamepadIndex, BUTTON_6) ...
-        Gamepad('GetButton', gamepadIndex, BUTTON_7) ...
-        Gamepad('GetButton', gamepadIndex, BUTTON_8) ...
-        Gamepad('GetButton', gamepadIndex, BUTTON_9) ...
-        Gamepad('GetButton', gamepadIndex, BUTTON_10) ...
-        ];
-    
-    if(any(buttonState))
-        keyDown = true;
-    else
-        keyDown = false;
-    end
-    
-end
-
-end
+% function waitForButtonRelease(gamepadIndex)
+% % Keeps looping till ONLY buttons 1-10 are all released
+% 
+% BUTTON_1    = 1;
+% BUTTON_2    = 2;
+% BUTTON_3    = 3;
+% BUTTON_4    = 4;
+% BUTTON_5    = 5;
+% BUTTON_6    = 6;
+% BUTTON_7    = 7;
+% BUTTON_8    = 8;
+% BUTTON_9    = 9;
+% BUTTON_10   = 10;
+% 
+% keyDown = true;
+% while(keyDown)
+%     
+%     buttonState = [ ...
+%         Gamepad('GetButton', gamepadIndex, BUTTON_1) ...
+%         Gamepad('GetButton', gamepadIndex, BUTTON_2) ...
+%         Gamepad('GetButton', gamepadIndex, BUTTON_3) ...
+%         Gamepad('GetButton', gamepadIndex, BUTTON_4) ...
+%         Gamepad('GetButton', gamepadIndex, BUTTON_5) ...
+%         Gamepad('GetButton', gamepadIndex, BUTTON_6) ...
+%         Gamepad('GetButton', gamepadIndex, BUTTON_7) ...
+%         Gamepad('GetButton', gamepadIndex, BUTTON_8) ...
+%         Gamepad('GetButton', gamepadIndex, BUTTON_9) ...
+%         Gamepad('GetButton', gamepadIndex, BUTTON_10) ...
+%         ];
+%     
+%     if(any(buttonState))
+%         keyDown = true;
+%     else
+%         keyDown = false;
+%     end
+%     
+% end
+% 
+% end
 
 
 

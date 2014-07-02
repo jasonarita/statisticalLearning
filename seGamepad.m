@@ -134,20 +134,20 @@ classdef seGamepad < handle
                             keyCode             = find(btn, 1);
                             keyIsDown           = ~isempty(keyCode);
                         end
-                        [kbKeyIsDown, ~,kbKeyCode]                  = KbCheck();
+                        [KEYBOARD_keyIsDown, ~,KEYBOARD_keyCode]                  = KbCheck();
                         
                         
                         % ---------------------------- %
                         % check for quit or pause keys %
                         % ---------------------------- %
-                        if (kbKeyIsDown && isequal(kbKeyCode, obj.escape_keys))
+                        if (KEYBOARD_keyIsDown && isequal(KEYBOARD_keyCode, obj.escape_keys))
                             fprintf('Escape key-combination activated.\nProgram stopped.\n');
                             
                             opt_daq.sendEventCode(obj.EVENT_CODE_END);   % send out event codes if we have a daq var is inputted
                             ShowCursor;
                             Screen('CloseAll');         % close psychtoolbox
                             return;                     % quit experiment
-                        elseif (kbKeyIsDown && isequal(kbKeyCode, obj.pause_keys))                  % pause experiment
+                        elseif (KEYBOARD_keyIsDown && isequal(KEYBOARD_keyCode, obj.pause_keys))                  % pause experiment
                             fprintf('Experiment paused.\nHit any key to continue...\n');
                                                         
                             opt_daq.sendEventCode(obj.EVENT_CODE_PAUSE);   % send out event codes if we have a daq var is inputted

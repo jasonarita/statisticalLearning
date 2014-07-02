@@ -53,7 +53,7 @@ methods
         left        = obj.location_pt(X) - obj.size_px;
         right       = obj.location_pt(X) + obj.size_px;
 
-        color_rgb   = color2RGB(obj.color_wd);
+        color_rgb   = seColor2RGB(obj.color_wd);
         
         Screen('DrawLine', winPtr, color_rgb, left,                obj.location_pt(Y),  right,              obj.location_pt(Y),  obj.penWidth_px);
         Screen('DrawLine', winPtr, color_rgb, obj.location_pt(X),   top,                obj.location_pt(X),  btm,                obj.penWidth_px);

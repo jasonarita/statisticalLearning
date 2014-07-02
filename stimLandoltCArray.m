@@ -7,7 +7,10 @@ classdef stimLandoltCArray
         stims;
         centerLoc_pt;
         arrayRadius;
-        
+         
+        targetLocation;
+        targetOrientation;
+        targetColor;
         distractor_orientations;
         jitter_px; 
         
@@ -28,17 +31,21 @@ classdef stimLandoltCArray
         function obj    = stimLandoltCArray(varargin)
             % obj = stimArray(centerPt, exptVars)
             % obj = stimArray(centerPt, TargetPresence, targetBoxNum, exptVars)
-            numStim                         = 12;
+            numStim                         = 8;
             sizeScale                       = 1;
-            uniqueLandoltCs                 = [];
+
             obj.xyMatrix                    = [];
             obj.colorMatrix                 = [];
-            centerLoc_pt                    = [0,0];
-            arrayRadius                     = 200;
-            radius_shift                    = -pi/2;
+            obj.centerLoc_pt                = [0,0];
+            obj.arrayRadius                 = 200;
+            radius_shift                    = -5*pi/numStim;
             
-            distractor_orientations         = {'left', 'right'};
+            obj.distractor_orientations     = {'left', 'right'};
             distractor_color                = 'black';
+            
+            obj.targetLocation              = 8;
+            obj.targetOrientation           = 'up';
+            obj.targetColor                 = distractor_color;
             
             
             switch nargin
@@ -47,29 +54,26 @@ classdef stimLandoltCArray
                 case 2
                     
                     numStim             = varargin{1};
-                    arrayRadius         = varargin{2};
+                    obj.arrayRadius     = varargin{2};
                     
-                case 3
-                    numStim             = varargin{1};
-                    arrayRadius         = varargin{2};
+                case 5
+                    numStim                 = varargin{1};
+                    obj.arrayRadius         = varargin{2};
+                    obj.targetLocation      = varargin{3};
+                    obj.targetOrientation   = varargin{4};
+                    obj.targetColor         = varargin{5};
                     
-                    if(isstruct(varargin{3}))
-                        uniqueLandoltCs = varargin{3};
-                    elseif(isnumeric(varargin{3}))
-                        sizeScale       = varargin{3};
-                    end
-                    
-                case 4
-                    numStim             = varargin{1};
-                    arrayRadius         = varargin{2};
-                    
-                    if(isstruct(varargin{3}))
-                        uniqueLandoltCs = varargin{3};
-                    elseif(isnumeric(varargin{3}))
-                        sizeScale       = varargin{3};
-                    end
-                    
-                    radius_shift        = varargin{4}; % overrides radius shift
+%                 case 4
+%                     numStim             = varargin{1};
+%                     obj.arrayRadius         = varargin{2};
+%                     
+%                     if(isstruct(varargin{3}))
+%                         uniqueLandoltCs = varargin{3};
+%                     elseif(isnumeric(varargin{3}))
+%                         sizeScale       = varargin{3};
+%                     end
+%                     
+%                     radius_shift        = varargin{4}; % overrides radius shift
                     
                 otherwise
                     error('Wrong number of input arguments');
@@ -86,61 +90,36 @@ classdef stimLandoltCArray
             % -------------------
             
             obj.stims                   = cell(numStim, 1); % initial stimArray
-            obj.centerLoc_pt            = centerLoc_pt;
-            obj.arrayRadius             = arrayRadius;
-            obj.distractor_orientations = distractor_orientations;
             obj.jitter_px               = 0;            
             obj.xyMatrix                = [];
                          
             
-            for stimNum = 1:length(uniqueLandoltCs) % numStim
+            % Set DISTRACTOR stimuli
+            for stimNum = 1:numStim
                 
-                % Compute distractor location
-                X=1;    % array index for x-coordinate 
+                % Set distractor LOCATION
+                X=1;    % array index for x-coordinate
                 Y=2;    % array index for y-coordinate
-                obj_locPt   = radialCoordinate(stimNum, numStim, centerLoc_pt, arrayRadius, radius_shift);
+                obj_locPt   = radialCoordinate(stimNum, numStim, obj.centerLoc_pt, obj.arrayRadius, radius_shift);
                 obj_locPt(X) = obj_locPt(X) + round(rand * (obj.jitter_px - -obj.jitter_px) + -obj.jitter_px);
                 obj_locPt(Y) = obj_locPt(Y) + round(rand * (obj.jitter_px - -obj.jitter_px) + -obj.jitter_px);
-                        
-                % Compute distractor gap orientation 
-                numDistractor_orientations  = length(distractor_orientations);
-                landoltC_orientation        = distractor_orientations{round(rand*(numDistractor_orientations-1)+1)};
-                landoltC_color              = distractor_color;
                 
-                if(~isempty(uniqueLandoltCs))  % 
-                    uniqueLandoltC_index        = stimNum; % find([uniqueLandoltCs.location] == stimNum, 1);
-                    if(~isempty(uniqueLandoltC_index))
-                        
-                        % Compute distractor location
-                        obj_location_num    = uniqueLandoltCs(uniqueLandoltC_index).location;
-                        obj_locPt           = radialCoordinate(obj_location_num, numStim, centerLoc_pt, arrayRadius, radius_shift);
-                        obj_locPt(X)         = obj_locPt(X) + round(rand * (obj.jitter_px - -obj.jitter_px) + -obj.jitter_px);
-                        obj_locPt(Y)         = obj_locPt(Y) + round(rand * (obj.jitter_px - -obj.jitter_px) + -obj.jitter_px);
-                        
-                        if(~isempty(uniqueLandoltCs(uniqueLandoltC_index).color))
-                            landoltC_color          = uniqueLandoltCs(uniqueLandoltC_index).color;
-                        else
-                            landoltC_color          = distractor_color;
-                        end
-                        
-                        % Set unique landolt-C ORIENTATION
-                        if(~isempty(uniqueLandoltCs(uniqueLandoltC_index).orientation))
-                            landoltC_orientation    = uniqueLandoltCs(uniqueLandoltC_index).orientation;
-                        else
-                            landoltC_orientation    = cell2mat(RandSample(distractor_orientations));
-                        end
-                        
-                        
-                    else
-                        % do nothing
-                    end
+                if(stimNum == obj.targetLocation)
+                    % Set TARGET ORIENTATION
+                    landoltC_orientation        = obj.targetOrientation;
+                else
+                    % Set DISTRACTOR ORIENTATION
+                    numDistractor_orientations  = length(obj.distractor_orientations);
+                    landoltC_orientation        = obj.distractor_orientations{round(rand*(numDistractor_orientations-1)+1)};
                 end
                 
-
+                % Set distractor COLOR
+                landoltC_color              = distractor_color;
+                
                 % create Landolt-C object
                 obj.stims{stimNum}  = stimLandoltC(obj_locPt, landoltC_orientation, landoltC_color, sizeScale);
-
-
+                
+                
                 obj.xyMatrix        = [obj.xyMatrix     obj.stims{stimNum}.xyMatrix];
                 obj.colorMatrix     = [obj.colorMatrix  repmat(obj.stims{stimNum}.frameColor_rgb', [1 length(obj.stims{stimNum}.xyMatrix)])];
 
@@ -181,7 +160,7 @@ classdef stimLandoltCArray
             
             try
                 bgColor = 'white';
-                [winPtr winRect center_pt] = setupScreen(color2RGB(bgColor)); %#ok<ASGLU>
+                [winPtr, winRect, center_pt] = seSetupScreen(seColor2RGB(bgColor)); %#ok<ASGLU>
                 Priority(MaxPriority(winPtr));
 
                 % INSERT DRAW COMMANDS
@@ -194,7 +173,7 @@ classdef stimLandoltCArray
                 
                 tic;
                 obj.draw(winPtr, center_pt);
-                value(counter) = toc;
+                value(counter) = toc; %#ok<AGROW>
                 
                 % ----------------------
                 
